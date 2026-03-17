@@ -87,8 +87,10 @@ client.on("auth_failure", (msg) => {
   console.error(botStatus);
 });
 
-client.on("message", async (message) => {
-  if (message.fromMe) return;
+client.on("message_create", async (message) => {
+  if (message.fromMe && !message.hasQuotedMsg && message.to === message.from) {
+    // Allow self-chat messages through
+  } else if (message.fromMe) return;
   const chatInfo = await message.getChat();
   console.log(`Besked fra ${chatInfo.name || message.from}: ${message.body}`);
   const response = findBestMatch(message.body);

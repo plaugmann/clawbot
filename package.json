@@ -1,0 +1,13 @@
+{
+  "name": "clawbot",
+  "version": "1.0.0",
+  "description": "WhatsApp chatbot demo for NVIDIA GTC 2026 - responds in Danish",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "whatsapp-web.js": "^1.26.1",
+    "qrcode-terminal": "^0.12.0"
+  }
+}

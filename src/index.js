@@ -5,6 +5,7 @@ const { findBestMatch, GREETING } = require("./chatbot");
 const client = new Client({
   authStrategy: new LocalAuth(),
   puppeteer: {
+    executablePath: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     headless: true,
     args: ["--no-sandbox", "--disable-setuid-sandbox"]
   }

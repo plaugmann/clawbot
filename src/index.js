@@ -99,8 +99,8 @@ client.on("message_create", async (message) => {
   const dbg = "[DEBUG] Chat: " + chatInfo.name + " | fromMe: " + message.fromMe + " | body: " + message.body;
   console.log(dbg);
   addDebug(dbg);
-  if (message.fromMe) return;
   if (chatInfo.name !== ALLOWED_CHAT) return;
+  if (message.fromMe && message.hasQuotedMsg) return;
   console.log(`Besked fra ${chatInfo.name || message.from}: ${message.body}`);
   const response = findBestMatch(message.body);
   await message.reply(response);

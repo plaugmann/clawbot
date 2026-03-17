@@ -5,6 +5,7 @@ const express = require("express");
 const { findBestMatch, GREETING } = require("./chatbot");
 
 const PORT = process.env.PORT || 3000;
+const ALLOWED_CHAT = "NVIDIA GTC chat";
 const app = express();
 
 let currentQr = null;
@@ -88,10 +89,9 @@ client.on("auth_failure", (msg) => {
 });
 
 client.on("message_create", async (message) => {
-  if (message.fromMe && !message.hasQuotedMsg && message.to === message.from) {
-    // Allow self-chat messages through
-  } else if (message.fromMe) return;
+  if (message.fromMe) return;
   const chatInfo = await message.getChat();
+  if (chatInfo.name !== ALLOWED_CHAT) return;
   console.log(`Besked fra ${chatInfo.name || message.from}: ${message.body}`);
   const response = findBestMatch(message.body);
   await message.reply(response);

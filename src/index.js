@@ -48,8 +48,8 @@ const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || null;
 
 const client = new Client({
   authStrategy: new LocalAuth({ dataPath: "/tmp/.wwebjs_auth" }),
-  authTimeoutMs: 120000,
-  qrMaxRetries: 10,
+  authTimeoutMs: 0,
+  qrMaxRetries: 0,
   puppeteer: {
     headless: true,
     ...(chromePath && { executablePath: chromePath }),
@@ -96,9 +96,15 @@ client.on("message", async (message) => {
   console.log(`Svar sendt til ${chatInfo.name || message.from}`);
 });
 
-client.on("disconnected", (reason) => {
-  botStatus = `Afbrudt: ${reason}`;
-  console.log("ClawBot afbrudt:", reason);
+client.on("disconnected", async (reason) => {
+  botStatus = `Afbrudt: ${reason} - genstarter om 5 sek...`;
+  console.log("ClawBot afbrudt:", reason, "- genstarter...");
+  setTimeout(() => {
+    client.initialize().catch((err) => {
+      botStatus = `Fejl ved genstart: ${err.message || err}`;
+      console.error("Fejl ved genstart:", err.message || err);
+    });
+  }, 5000);
 });
 
 console.log("Starter ClawBot - NVIDIA GTC 2026 chatbot (dansk)...");

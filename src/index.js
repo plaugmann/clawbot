@@ -1,52 +1,108 @@
 const { Client, LocalAuth } = require("whatsapp-web.js");
-const qrcode = require("qrcode-terminal");
+const qrcode = require("qrcode");
+const qrcodeTerminal = require("qrcode-terminal");
+const express = require("express");
 const { findBestMatch, GREETING } = require("./chatbot");
 
+const PORT = process.env.PORT || 3000;
+const app = express();
+
+let currentQr = null;
+let botStatus = "Starter op...";
+
+app.get("/", async (req, res) => {
+  let qrImage = "";
+  if (currentQr) {
+    qrImage = await qrcode.toDataURL(currentQr);
+  }
+  res.send(`<!DOCTYPE html>
+<html><head>
+  <title>ClawBot - GTC 2026</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="5">
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 2rem; background: #1a1a2e; color: #eee; }
+    h1 { color: #76b900; }
+    .status { padding: 1rem; margin: 1rem auto; max-width: 400px; border-radius: 8px; background: #16213e; }
+    img { max-width: 300px; border-radius: 8px; }
+    .ready { color: #76b900; font-size: 1.5rem; }
+  </style>
+</head><body>
+  <h1>ClawBot</h1>
+  <p>NVIDIA GTC 2026 WhatsApp Chatbot (Dansk)</p>
+  <div class="status">
+    <p><strong>Status:</strong> ${botStatus}</p>
+    ${qrImage ? `<p>Scan QR-koden med WhatsApp:</p><p><strong>Linkede enheder > Link en enhed</strong></p><img src="${qrImage}" alt="QR"/>` : ""}
+    ${botStatus.includes("Klar") ? '<p class="ready">Bot aktiv!</p>' : ""}
+  </div>
+</body></html>`);
+});
+
+app.get("/status", (req, res) => {
+  res.json({ status: botStatus, hasQr: !!currentQr });
+});
+
+app.listen(PORT, () => { console.log(`Web UI klar paa port ${PORT}`); });
+
+const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || null;
+
 const client = new Client({
-  authStrategy: new LocalAuth(),
+  authStrategy: new LocalAuth({ dataPath: "/tmp/.wwebjs_auth" }),
   authTimeoutMs: 120000,
-  qrMaxRetries: 5,
+  qrMaxRetries: 10,
   puppeteer: {
-    executablePath: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"]
+    ...(chromePath && { executablePath: chromePath }),
+    args: ["--no-sandbox","--disable-setuid-sandbox","--disable-dev-shm-usage","--disable-gpu","--single-process"]
   }
 });
 
+client.on("loading_screen", (percent, message) => {
+  botStatus = `Indlaeser WhatsApp... ${percent}% - ${message}`;
+  console.log(botStatus);
+});
+
 client.on("qr", (qr) => {
-  console.log("Scan denne QR-kode med WhatsApp paa din telefon:");
-  qrcode.generate(qr, { small: true });
+  currentQr = qr;
+  botStatus = "Venter paa QR-scanning...";
+  console.log("\n--- QR-KODE: Scan med WhatsApp ---");
+  qrcodeTerminal.generate(qr, { small: true });
+  console.log(`Eller abn web UI paa port ${PORT}\n`);
 });
 
 client.on("ready", () => {
-  console.log("ClawBot er klar! Venter paa beskeder om GTC 2026...");
+  currentQr = null;
+  botStatus = "Klar! Lytter efter beskeder...";
+  console.log("ClawBot er klar!");
 });
 
 client.on("authenticated", () => {
+  currentQr = null;
+  botStatus = "Autentificeret! Indlaeser...";
   console.log("Autentificering lykkedes!");
 });
 
 client.on("auth_failure", (msg) => {
-  console.error("Autentificering fejlede:", msg);
+  botStatus = `Autentificering fejlede: ${msg}`;
+  console.error(botStatus);
 });
 
 client.on("message", async (message) => {
   if (message.fromMe) return;
-
   const chatInfo = await message.getChat();
   console.log(`Besked fra ${chatInfo.name || message.from}: ${message.body}`);
-
   const response = findBestMatch(message.body);
   await message.reply(response);
   console.log(`Svar sendt til ${chatInfo.name || message.from}`);
 });
 
 client.on("disconnected", (reason) => {
+  botStatus = `Afbrudt: ${reason}`;
   console.log("ClawBot afbrudt:", reason);
 });
 
 console.log("Starter ClawBot - NVIDIA GTC 2026 chatbot (dansk)...");
 client.initialize().catch((err) => {
+  botStatus = `Fejl: ${err.message || err}`;
   console.error("Fejl ved opstart:", err.message || err);
-  process.exit(1);
 });

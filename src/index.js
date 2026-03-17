@@ -2,7 +2,7 @@ const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode");
 const qrcodeTerminal = require("qrcode-terminal");
 const express = require("express");
-const { findBestMatch, GREETING } = require("./chatbot");
+const { chat } = require("./chatbot");
 
 const PORT = process.env.PORT || 3000;
 const ALLOWED_CHAT = "NVIDIA GTC chat";
@@ -102,7 +102,7 @@ client.on("message_create", async (message) => {
   if (chatInfo.name !== ALLOWED_CHAT) return;
   if (message.fromMe && message.hasQuotedMsg) return;
   console.log(`Besked fra ${chatInfo.name || message.from}: ${message.body}`);
-  const response = findBestMatch(message.body);
+  const response = await chat(chatInfo.id._serialized || message.from, message.body);
   await message.reply(response);
   console.log(`Svar sendt til ${chatInfo.name || message.from}`);
 });

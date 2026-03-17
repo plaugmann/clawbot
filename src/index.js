@@ -10,6 +10,8 @@ const app = express();
 
 let currentQr = null;
 let botStatus = "Starter op...";
+const debugLog = [];
+function addDebug(msg) { debugLog.unshift(new Date().toISOString().slice(11,19) + " " + msg); if (debugLog.length > 20) debugLog.pop(); }
 
 app.get("/", async (req, res) => {
   let qrImage = "";
@@ -37,6 +39,10 @@ app.get("/", async (req, res) => {
     ${botStatus.includes("Klar") ? '<p class="ready">Bot aktiv!</p>' : ""}
   </div>
 </body></html>`);
+});
+
+app.get("/debug", (req, res) => {
+  res.json({ log: debugLog });
 });
 
 app.get("/status", (req, res) => {
@@ -89,8 +95,11 @@ client.on("auth_failure", (msg) => {
 });
 
 client.on("message_create", async (message) => {
-  if (message.fromMe) return;
   const chatInfo = await message.getChat();
+  const dbg = "[DEBUG] Chat: " + chatInfo.name + " | fromMe: " + message.fromMe + " | body: " + message.body;
+  console.log(dbg);
+  addDebug(dbg);
+  if (message.fromMe) return;
   if (chatInfo.name !== ALLOWED_CHAT) return;
   console.log(`Besked fra ${chatInfo.name || message.from}: ${message.body}`);
   const response = findBestMatch(message.body);

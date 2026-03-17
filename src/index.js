@@ -4,6 +4,8 @@ const { findBestMatch, GREETING } = require("./chatbot");
 
 const client = new Client({
   authStrategy: new LocalAuth(),
+  authTimeoutMs: 120000,
+  qrMaxRetries: 5,
   puppeteer: {
     executablePath: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     headless: true,
@@ -44,4 +46,7 @@ client.on("disconnected", (reason) => {
 });
 
 console.log("Starter ClawBot - NVIDIA GTC 2026 chatbot (dansk)...");
-client.initialize();
+client.initialize().catch((err) => {
+  console.error("Fejl ved opstart:", err.message || err);
+  process.exit(1);
+});
